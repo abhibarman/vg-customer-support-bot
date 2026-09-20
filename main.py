@@ -2,10 +2,13 @@ import os
 from typing import Literal
 
 from aws_bedrock_token_generator import provide_token
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from openai import OpenAI
+
+load_dotenv()
 
 # --- Config ---------------------------------------------------------------
 

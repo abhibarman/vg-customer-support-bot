@@ -3,13 +3,60 @@
 Minimal FastAPI wrapper around the Amazon Bedrock Mantle-hosted MiniMax model, scoped to answer questions
 about Vanguard financial products and services.
 
-## Setup
+## Prerequisites
+
+- Python 3.12+ (3.14 works)
+- AWS CLI with a `bedrock-role` profile that can assume the Mantle/Bedrock IAM role
+- Network access to `https://bedrock-mantle.ap-south-1.api.aws`
+
+Confirm the profile exists:
 
 ```bash
-uv sync --extra mantle
-export AWS_PROFILE=bedrock-role
-export AWS_REGION=ap-south-1
-uv run --directory vg-bot uvicorn main:app --reload --port 8000
+aws configure list-profiles
+```
+
+## Setup
+
+From this directory:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+`.env` is optional if `AWS_PROFILE=bedrock-role` is already in your environment. The
+defaults in `.env.example` match the Mantle endpoint used by this app.
+
+With [uv](https://docs.astral.sh/uv/) instead of pip:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run
+
+```bash
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
+```
+
+The API is at `http://localhost:8000`. Interactive docs: `http://localhost:8000/docs`.
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Optional Mantle smoke test (same credentials as the API):
+
+```bash
+python bedrock-mantle.py
 ```
 
 ## Usage

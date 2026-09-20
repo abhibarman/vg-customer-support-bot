@@ -1,7 +1,10 @@
 import os
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from aws_bedrock_token_generator import provide_token
+
+load_dotenv()
 
 # A small standalone Mantle smoke test. The FastAPI app uses the same settings.
 os.environ.setdefault("AWS_PROFILE", os.environ.get("REDVERSE_AWS_PROFILE", "bedrock-role"))
