@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#96151D" />
+    <meta
+      name="description"
+      content="Vanguard customer support assistant for questions about products, accounts, and investing mechanics."
+    />
+    <title>Vanguard Support</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app signed-out">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="brand">
+            <span class="mark" aria-hidden="true">V</span>
+            <div class="brand-copy">
+              <p class="wordmark">Vanguard</p>
+              <p class="product">Customer Support</p>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <span id="status" class="status" data-state="checking" hidden>
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="status-label">Connecting</span>
+            </span>
+            <span id="user-label" class="user-chip" hidden></span>
+            <button id="new-chat" class="ghost" type="button" hidden>New conversation</button>
+            <a id="sign-out" class="ghost" href="/auth/logout" hidden>Sign out</a>
+          </div>
+        </div>
+      </header>
+
+      <main id="stage" class="stage" aria-live="polite">
+        <section id="gate" class="welcome">
+          <p class="kicker">Secure access</p>
+          <h1>Sign in to continue</h1>
+          <p id="gate-copy" class="lede">
+            Sign in with Auth0 to open Vanguard Support.
+          </p>
+          <a id="sign-in" class="signin" href="/auth/login">Sign in</a>
+        </section>
+
+        <section id="welcome" class="welcome" hidden>
+          <p class="kicker">Investor support</p>
+          <h1>How can we help you today?</h1>
+          <p class="lede">
+            Ask about 401(k)s, IRAs, ETFs, mutual funds, fees, and account mechanics.
+            This assistant cannot see your account and is not a licensed advisor.
+          </p>
+          <ul class="prompts" id="prompts">
+            <li>
+              <button type="button" data-prompt="What is the difference between a Roth and Traditional 401(k)?">
+                Roth vs Traditional 401(k)
+              </button>
+            </li>
+            <li>
+              <button type="button" data-prompt="How do Vanguard ETFs differ from Vanguard mutual funds?">
+                ETFs vs mutual funds
+              </button>
+            </li>
+            <li>
+              <button type="button" data-prompt="What fees should I expect on a Vanguard brokerage account?">
+                Brokerage account fees
+              </button>
+            </li>
+            <li>
+              <button type="button" data-prompt="When would I choose a Roth IRA over a Traditional IRA at Vanguard?">
+                Choosing an IRA
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <ol id="thread" class="thread" hidden></ol>
+      </main>
+
+      <footer class="dock" hidden>
+        <form id="composer" class="composer">
+          <label class="sr-only" for="message">Message</label>
+          <textarea
+            id="message"
+            name="message"
+            rows="1"
+            required
+            maxlength="4000"
+            placeholder="Ask a question about Vanguard products…"
+            autocomplete="off"
+          ></textarea>
+          <button id="send" type="submit" aria-label="Send message" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 12h12M13 6l6 6-6 6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </form>
+        <p class="disclaimer">
+          For educational information only. For personalized advice, speak with a Vanguard advisor.
+          Do not share account numbers, passwords, or other sensitive information.
+        </p>
+      </footer>
+    </div>
+
+    <noscript>
+      <p class="noscript">JavaScript is required to use Vanguard Support.</p>
+    </noscript>
+
+    <script src="/static/auth-client.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,12 +1,17 @@
 import os
+from pathlib import Path
 from typing import Literal
 
 from aws_bedrock_token_generator import provide_token
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from openai import OpenAI
+
+from auth import is_configured, mount_oidc, require_user
 
 load_dotenv()
 
@@ -57,14 +62,16 @@ support directly.
 
 # --- App --------------------------------------------------------------------
 
-app = FastAPI(title="Vanguard Support Chatbot API")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+app = FastAPI(title="Vanguard Support Chatbot")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten this before anything beyond local dev
     allow_methods=["*"],
     allow_headers=["*"],
 )
+mount_oidc(app)
 
 
 class ChatMessage(BaseModel):
@@ -84,13 +91,18 @@ class ChatResponse(BaseModel):
     reply: str
 
 
+@app.get("/")
+def index():
+    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "auth_configured": is_configured()}
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, _user: dict = Depends(require_user)):
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages += [{"role": m.role, "content": m.content} for m in req.history]
     messages.append({"role": "user", "content": req.message})
@@ -112,3 +124,6 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=502, detail="Empty response from model")
 
     return ChatResponse(reply=reply)
+
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -1,23 +1,36 @@
-# Vanguard support chatbot API
+# Vanguard support chatbot
 
-Minimal FastAPI wrapper around the Amazon Bedrock Mantle-hosted MiniMax model, scoped to answer questions
-about Vanguard financial products and services.
+FastAPI app with a chat UI around the Amazon Bedrock Mantle-hosted MiniMax model,
+scoped to Vanguard financial products and services.
 
-## Prerequisites
+**The API and the chat UI are the same process.** One `uvicorn` command starts both.
 
-- Python 3.12+ (3.14 works)
-- AWS CLI with a `bedrock-role` profile that can assume the Mantle/Bedrock IAM role
-- Network access to `https://bedrock-mantle.ap-south-1.api.aws`
+## Start (API + chat UI)
 
-Confirm the profile exists:
+From this directory, after the one-time setup below:
 
 ```bash
-aws configure list-profiles
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
 ```
 
-## Setup
+Leave that terminal running. Then in a browser open **http://localhost:8000** (not `127.0.0.1`).
 
-From this directory:
+| What | Where |
+|---|---|
+| Chat UI | [http://localhost:8000](http://localhost:8000) |
+| Sign in | Button on that page (Auth0) |
+| Health check | [http://localhost:8000/health](http://localhost:8000/health) |
+| API docs | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| Chat API | `POST http://localhost:8000/chat` (after sign-in) |
+
+Stop the app with `Ctrl+C` in the terminal.
+
+If port 8000 is already in use, either use that running server or stop it and start `uvicorn` again.
+
+## First-time setup
+
+### 1. Python env and dependencies
 
 ```bash
 python3 -m venv .venv
@@ -26,40 +39,58 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-`.env` is optional if `AWS_PROFILE=bedrock-role` is already in your environment. The
-defaults in `.env.example` match the Mantle endpoint used by this app.
+You also need:
 
-With [uv](https://docs.astral.sh/uv/) instead of pip:
+- Python 3.12+ (3.14 works)
+- AWS CLI profile `bedrock-role` (`aws configure list-profiles`)
+- Network access to `https://bedrock-mantle.ap-south-1.api.aws`
+
+### 2. Auth0 (required to use the chat)
+
+1. Sign up at [https://auth0.com/signup](https://auth0.com/signup) (Gmail or org email is fine).
+2. **Applications → Create Application** named `VG Support Chat`.
+3. Type: **Regular Web Application**.
+4. On **Settings**:
+   - Allowed Callback URLs: `http://localhost:8000/auth/callback`
+   - Allowed Logout URLs: `http://localhost:8000`
+   - Allowed Web Origins: `http://localhost:8000`
+5. Save, then copy **Domain**, **Client ID**, and **Client Secret** into `.env`:
 
 ```bash
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-cp .env.example .env
+APP_BASE_URL=http://localhost:8000
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+SESSION_SECRET=any-long-random-string
 ```
 
-## Run
+Generate `SESSION_SECRET` with:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+### 3. Start and use
 
 ```bash
 source .venv/bin/activate
 uvicorn main:app --reload --port 8000
 ```
 
-The API is at `http://localhost:8000`. Interactive docs: `http://localhost:8000/docs`.
+1. Open [http://localhost:8000](http://localhost:8000).
+2. Click **Sign in** and complete Auth0 login.
+3. Use a suggested prompt or type in the box. Enter sends; Shift+Enter is a new line.
+4. **New conversation** clears the thread. **Sign out** ends the Auth0 session.
 
-Health check:
+Chat history lives in the browser only. Each turn posts prior messages to `POST /chat`.
+
+## API after you are signed in
+
+`POST /chat` needs the session cookie from the browser login. Easiest path is the UI. From curl, sign in via the UI first or you will get `401`.
 
 ```bash
 curl http://localhost:8000/health
 ```
-
-Optional Mantle smoke test (same credentials as the API):
-
-```bash
-python bedrock-mantle.py
-```
-
-## Usage
 
 ```bash
 curl -X POST http://localhost:8000/chat \
@@ -76,7 +107,7 @@ Response:
 { "reply": "..." }
 ```
 
-To continue a conversation, pass prior turns back in `history`:
+To continue a conversation, pass prior turns in `history`:
 
 ```json
 {
@@ -88,15 +119,32 @@ To continue a conversation, pass prior turns back in `history`:
 }
 ```
 
-## Notes / next steps
+Optional Mantle smoke test (AWS only, no chat UI):
 
-- The default model is `minimax.minimax-m2.5`. Override it with
-  `VG_BOT_MANTLE_MODEL` only when a different model is available in Mantle.
-- Mantle uses short-lived IAM tokens from the `bedrock-role` AWS profile; no
-  model API key is stored in the demo app.
-- CORS is wide open (`*`) — restrict `allow_origins` before deploying anywhere real.
-- No conversation persistence, rate limiting, or auth yet — fine for a same-day demo,
-  not for anything customer-facing.
-- The system prompt scopes answers to Vanguard topics and explicitly avoids acting as
-  a licensed advisor or fabricating account-specific data. Worth a compliance review
-  before this touches real users.
+```bash
+python bedrock-mantle.py
+```
+
+## Reuse the auth layer in another app
+
+Auth is a generic OIDC package in `auth/`. Copy that folder (and optionally `static/auth-client.js`):
+
+```python
+from auth import mount_oidc, require_user
+
+mount_oidc(app)
+
+@app.get("/private")
+def private(user: dict = Depends(require_user)):
+    return user
+```
+
+See [`auth/README.md`](auth/README.md). To use Okta later, keep the same module and set `OIDC_ISSUER` instead of `AUTH0_DOMAIN`.
+
+## Notes
+
+- Default model: `minimax.minimax-m2.5` (`VG_BOT_MANTLE_MODEL` to override).
+- Mantle uses short-lived IAM tokens from the `bedrock-role` AWS profile.
+- CORS is wide open (`*`) — restrict `allow_origins` before deploying.
+- Auth0's free plan is for development, not a production SLA.
+- The system prompt is not licensed advice and cannot see account data.
